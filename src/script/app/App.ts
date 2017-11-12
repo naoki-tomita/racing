@@ -22,6 +22,7 @@ import {
   Quaternion,
   ArrowHelper,
   Vector4,
+  SpotLight
 } from "three";
 
 export class App {
@@ -54,43 +55,56 @@ export class App {
     casino.receiveShadow = true;
 
     const dirLight = new DirectionalLight();
+    dirLight.position.set(20, 20, 20);
+    dirLight.target.position.set(policeCar.position.x, policeCar.position.y, policeCar.position.z);
 
     scene.add(policeCar);
     scene.add(casino);
     scene.add(dirLight);
+    scene.add(dirLight.target);
 
     camera.position.set(100, 100, 200);
     camera.lookAt(policeCar.position);
 
+    const pressed: { [index: number]: boolean } = {};
     function animate() {
       requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    }
 
-    let forward = 0;
-    let rotation = 0;
-    document.addEventListener("keydown", e => {
       let forward = 0;
-      if (e.keyCode === 37) {
+      if (pressed[37]) {
         const q = new Quaternion();
         const axis = new Vector3(0, 1, 0);
         q.setFromAxisAngle(axis, 0.1);
         policeCar.quaternion.multiply(q);
-      } else if (e.keyCode === 38) {
+      }
+      if (pressed[38]) {
         forward = 1;
-      } else if (e.keyCode === 39) {
+      }
+      if (pressed[39]) {
         const q = new Quaternion();
         const axis = new Vector3(0, 1, 0);
         q.setFromAxisAngle(axis, -0.1);
         policeCar.quaternion.multiply(q);
-      } else if (e.keyCode === 40) {
+      }
+      if (pressed[40]) {
         forward = -1;
       }
       const f = policeForward.clone().applyMatrix4(policeCar.matrix);
       const v = new Vector3(f.x, f.y, f.z).normalize();
-      policeCar.position.add(new Vector3(v.x * forward, v.y * forward, v.z * forward));
+      policeCar.position.add(
+        new Vector3(v.x * forward, v.y * forward, v.z * forward)
+      );
+      dirLight.target.position.set(policeCar.position.x, policeCar.position.y, policeCar.position.z);
+      
 
-      // camera.lookAt(policeCar.position);
+      renderer.render(scene, camera);
+    }
+    document.addEventListener("keyup", e => {
+      pressed[e.keyCode] = false;
+    });
+
+    document.addEventListener("keydown", e => {
+      pressed[e.keyCode] = true;
     });
 
     animate();
@@ -123,4 +137,34 @@ async function loadObj(modelPath: string, material: MaterialCreator) {
       resolve(object);
     });
   });
+}
+
+class KeyProcessor {
+  keyMap: { [keyCode: number]: Array<() => void> } = {};
+  keyPressed: { [keyCode: number]: boolean } = {};
+  processing: boolean = false;
+  start() {
+    document.addEventListener("keydown", this.onKeyDown.bind(this));
+    document.addEventListener("keyup", this.onKeyDown.bind(this));
+    this.processing = true;
+  }
+  stop() {
+    this.processing = false;
+  }
+  addKeyListener(keyCode: number, callback: () => void) {
+    this.keyMap[keyCode] = this.keyMap[keyCode] || [];
+    this.keyMap[keyCode].push(callback);
+  }
+  tick() {
+    if (!this.processing) { return; }
+    for (const k in this.keyPressed) {
+      k && this.keyMap[k] && this.keyMap[k].forEach(cb => cb());
+    }
+  }
+  private onKeyDown(e: KeyboardEvent) {
+    this.keyPressed[e.keyCode] = true;
+  }
+  private onKeyUp(e: KeyboardEvent) {
+    this.keyPressed[e.keyCode] = false;
+  }
 }
