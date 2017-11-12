@@ -1,6 +1,6 @@
 # Blender v2.78 (sub 0) OBJ File: '1 iternal.blend'
 # www.blender.org
-mtllib PUSHILIN_Police_car.mtl
+mtllib metadata.mtl
 o PUSHILIN_Police_car_Cube.006
 v 0.924707 -0.520809 0.448893
 v 0.896913 -0.520809 0.515993

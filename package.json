@@ -24,6 +24,7 @@
     "prestart": "run-s clean build",
     "start": "run-p serve watch",
     "serve": "ws",
+    "prebuild": "run-s fix",
     "build": "run-p build:*",
     "build:ts": "webpack",
     "build:html": "cpx \"./src/apps/*.html\" \"./dist/\"",
@@ -31,6 +32,6 @@
     "watch": "run-p watch:*",
     "watch:ts": "chokidar \"./src/script/**/*.ts\" -c \"yarn run build:ts\"",
     "watch:html": "chokidar \"./src/apps/*.html\" -c \"yarn run build:html\"",
-    "fix": "prettier --write ./src/**/*.*"
+    "fix": "prettier --write ./src/script/**/*.*"
   }
 }

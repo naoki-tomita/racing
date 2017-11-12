@@ -15,13 +15,27 @@ import {
   Group,
   Euler,
   PlaneGeometry,
-  DirectionalLightHelper
+  DirectionalLightHelper,
+  Object3D,
+  Color,
+  Fog,
+  Quaternion,
+  ArrowHelper,
+  Vector4,
 } from "three";
 
 export class App {
   async start() {
     const scene = new Scene();
-    const camera = new PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 5000);
+    scene.background = new Color().setHSL(0.6, 0, 1);
+    scene.fog = new Fog(scene.background, 1, 5000);
+
+    const camera = new PerspectiveCamera(
+      30,
+      window.innerWidth / window.innerHeight,
+      1,
+      5000
+    );
     const renderer = new WebGLRenderer();
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.renderReverseSided = false;
@@ -31,29 +45,21 @@ export class App {
 
     const policeCar = await loadModel("./objects/police_car/");
     policeCar.castShadow = true;
-    policeCar.position.y = 1;
-    policeCar.scale.set(20, 20, 20);
+    policeCar.position.y = 7;
+    policeCar.rotation.y = Math.PI / 2;
+    policeCar.scale.set(7, 7, 7);
+    const policeForward = new Vector4(1, 0, 0, 0);
 
-    const plane = new Mesh(
-      new PlaneGeometry(50, 50, 1, 1),
-      new MeshPhysicalMaterial({ color: 0xffffff }),
-    );
-    plane.position.set(0, 0, 0);
-    plane.rotation.x = -90 * Math.PI / 180;
-    plane.receiveShadow = true;
+    const casino = await loadModel("./objects/casino/");
+    casino.receiveShadow = true;
 
     const dirLight = new DirectionalLight();
-    dirLight.position.set(-1, 1.75, 1);
-    dirLight.position.multiplyScalar(30);
-    const dirLightHelper = new DirectionalLightHelper(dirLight, 10); 
-    
-    
+
     scene.add(policeCar);
-    scene.add(plane);
+    scene.add(casino);
     scene.add(dirLight);
-    scene.add(dirLightHelper);
-    
-    camera.position.set(0, 0, 250);
+
+    camera.position.set(100, 100, 200);
     camera.lookAt(policeCar.position);
 
     function animate() {
@@ -61,19 +67,32 @@ export class App {
       renderer.render(scene, camera);
     }
 
-    document.addEventListener("keydown", (e) => {
-      var rotate = new Euler();
+    let forward = 0;
+    let rotation = 0;
+    document.addEventListener("keydown", e => {
+      let forward = 0;
       if (e.keyCode === 37) {
-        policeCar.rotation.y += 0.1;
+        const q = new Quaternion();
+        const axis = new Vector3(0, 1, 0);
+        q.setFromAxisAngle(axis, 0.1);
+        policeCar.quaternion.multiply(q);
       } else if (e.keyCode === 38) {
-        
+        forward = 1;
       } else if (e.keyCode === 39) {
-        policeCar.rotation.y -= 0.1;
+        const q = new Quaternion();
+        const axis = new Vector3(0, 1, 0);
+        q.setFromAxisAngle(axis, -0.1);
+        policeCar.quaternion.multiply(q);
       } else if (e.keyCode === 40) {
+        forward = -1;
       }
-      camera.lookAt(policeCar.position);
-    })
-    
+      const f = policeForward.clone().applyMatrix4(policeCar.matrix);
+      const v = new Vector3(f.x, f.y, f.z).normalize();
+      policeCar.position.add(new Vector3(v.x * forward, v.y * forward, v.z * forward));
+
+      // camera.lookAt(policeCar.position);
+    });
+
     animate();
   }
 }
@@ -100,7 +119,7 @@ async function loadObj(modelPath: string, material: MaterialCreator) {
   loader.setMaterials(material);
   loader.setPath(modelPath);
   return new Promise<Group>(resolve => {
-    loader.load("object.obj", (object) => {
+    loader.load("object.obj", object => {
       resolve(object);
     });
   });
