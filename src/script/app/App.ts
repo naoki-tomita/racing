@@ -1,28 +1,17 @@
 import {
   Scene,
-  PerspectiveCamera,
-  WebGLRenderer,
-  BoxGeometry,
-  Mesh,
-  Vector3,
-  AmbientLight,
-  MeshPhysicalMaterial,
-  HemisphereLight,
-  DirectionalLight,
-  MTLLoader,
-  OBJLoader,
-  MaterialCreator,
-  Group,
-  Euler,
-  PlaneGeometry,
-  DirectionalLightHelper,
-  Object3D,
   Color,
   Fog,
-  Quaternion,
-  ArrowHelper,
+  PerspectiveCamera,
+  WebGLRenderer,
   Vector4,
-  SpotLight
+  DirectionalLight,
+  Quaternion,
+  Vector3,
+  MTLLoader,
+  MaterialCreator,
+  OBJLoader,
+  Group
 } from "three";
 
 export class App {
@@ -56,7 +45,11 @@ export class App {
 
     const dirLight = new DirectionalLight();
     dirLight.position.set(20, 20, 20);
-    dirLight.target.position.set(policeCar.position.x, policeCar.position.y, policeCar.position.z);
+    dirLight.target.position.set(
+      policeCar.position.x,
+      policeCar.position.y,
+      policeCar.position.z
+    );
 
     scene.add(policeCar);
     scene.add(casino);
@@ -94,8 +87,11 @@ export class App {
       policeCar.position.add(
         new Vector3(v.x * forward, v.y * forward, v.z * forward)
       );
-      dirLight.target.position.set(policeCar.position.x, policeCar.position.y, policeCar.position.z);
-      
+      dirLight.target.position.set(
+        policeCar.position.x,
+        policeCar.position.y,
+        policeCar.position.z
+      );
 
       renderer.render(scene, camera);
     }
@@ -156,7 +152,9 @@ class KeyProcessor {
     this.keyMap[keyCode].push(callback);
   }
   tick() {
-    if (!this.processing) { return; }
+    if (!this.processing) {
+      return;
+    }
     for (const k in this.keyPressed) {
       k && this.keyMap[k] && this.keyMap[k].forEach(cb => cb());
     }
