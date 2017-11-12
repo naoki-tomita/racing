@@ -15,7 +15,7 @@
 - [ ] もっと素敵な車
 
 # demo
-[demo]()
+[demo](https://naoki-tomita.github.io/racing/dist)
 
 # 著作権について
 プログラム内で利用しているモデルは以下のとおりです。
