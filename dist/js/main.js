@@ -46441,6 +46441,16 @@ THREE.OBJLoader = ( function () {
 
 "use strict";
 
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -46483,75 +46493,34 @@ var App = /** @class */ (function () {
     }
     App.prototype.start = function () {
         return __awaiter(this, void 0, void 0, function () {
-            function animate() {
-                requestAnimationFrame(animate);
-                var forward = 0;
-                if (pressed[37]) {
-                    var q = new three_1.Quaternion();
-                    var axis = new three_1.Vector3(0, 1, 0);
-                    q.setFromAxisAngle(axis, 0.1);
-                    policeCar.quaternion.multiply(q);
-                }
-                if (pressed[38]) {
-                    forward = 1;
-                }
-                if (pressed[39]) {
-                    var q = new three_1.Quaternion();
-                    var axis = new three_1.Vector3(0, 1, 0);
-                    q.setFromAxisAngle(axis, -0.1);
-                    policeCar.quaternion.multiply(q);
-                }
-                if (pressed[40]) {
-                    forward = -1;
-                }
-                var f = policeForward.clone().applyMatrix4(policeCar.matrix);
-                var v = new three_1.Vector3(f.x, f.y, f.z).normalize();
-                policeCar.position.add(new three_1.Vector3(v.x * forward, v.y * forward, v.z * forward));
-                dirLight.target.position.set(policeCar.position.x, policeCar.position.y, policeCar.position.z);
-                renderer.render(scene, camera);
-            }
-            var scene, camera, renderer, policeCar, policeForward, casino, dirLight, pressed;
+            var policeCar, casino, light, game;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        scene = new three_1.Scene();
-                        scene.background = new three_1.Color().setHSL(0.6, 0, 1);
-                        scene.fog = new three_1.Fog(scene.background, 1, 5000);
-                        camera = new three_1.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 5000);
-                        renderer = new three_1.WebGLRenderer();
-                        renderer.shadowMap.enabled = true;
-                        renderer.shadowMap.renderReverseSided = false;
-                        renderer.setSize(window.innerWidth, window.innerHeight);
-                        document.body.appendChild(renderer.domElement);
-                        return [4 /*yield*/, loadModel("./objects/police_car/")];
+                        policeCar = new PoliceCar();
+                        casino = new Casino();
+                        return [4 /*yield*/, modelLoader(policeCar, casino)];
                     case 1:
-                        policeCar = _a.sent();
-                        policeCar.castShadow = true;
-                        policeCar.position.y = 7;
-                        policeCar.rotation.y = Math.PI / 2;
-                        policeCar.scale.set(7, 7, 7);
-                        policeForward = new three_1.Vector4(1, 0, 0, 0);
-                        return [4 /*yield*/, loadModel("./objects/casino/")];
-                    case 2:
-                        casino = _a.sent();
-                        casino.receiveShadow = true;
-                        dirLight = new three_1.DirectionalLight();
-                        dirLight.position.set(20, 20, 20);
-                        dirLight.target.position.set(policeCar.position.x, policeCar.position.y, policeCar.position.z);
-                        scene.add(policeCar);
-                        scene.add(casino);
-                        scene.add(dirLight);
-                        scene.add(dirLight.target);
-                        camera.position.set(100, 100, 200);
-                        camera.lookAt(policeCar.position);
-                        pressed = {};
-                        document.addEventListener("keyup", function (e) {
-                            pressed[e.keyCode] = false;
+                        _a.sent();
+                        light = new Light();
+                        game = new Game();
+                        game.addGameObject(policeCar);
+                        game.addGameObject(casino);
+                        game.addGameObject(light);
+                        game.addProc(function () {
+                            var rc = new three_1.Raycaster(policeCar.object.position, new three_1.Vector3(0, -1, 0));
+                            var c = rc.intersectObject(casino.object, true);
+                            console.log(c.length);
+                            if (c.length === 0) {
+                                policeCar.object.position.y += 0.1;
+                            }
+                            else {
+                                if (!c.some(function (o) { return o.distance === 0; })) {
+                                    policeCar.object.position.y -= 0.1;
+                                }
+                            }
                         });
-                        document.addEventListener("keydown", function (e) {
-                            pressed[e.keyCode] = true;
-                        });
-                        animate();
+                        game.start();
                         return [2 /*return*/];
                 }
             });
@@ -46560,49 +46529,19 @@ var App = /** @class */ (function () {
     return App;
 }());
 exports.App = App;
-function loadModel(modelPath) {
+function modelLoader() {
+    var obj = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        obj[_i] = arguments[_i];
+    }
     return __awaiter(this, void 0, void 0, function () {
-        var material, object;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, loadMtl(modelPath)];
+                case 0: return [4 /*yield*/, Promise.all(obj.map(function (o) { return o.init(); }))];
                 case 1:
-                    material = _a.sent();
-                    return [4 /*yield*/, loadObj(modelPath, material)];
-                case 2:
-                    object = _a.sent();
-                    return [2 /*return*/, object];
+                    _a.sent();
+                    return [2 /*return*/];
             }
-        });
-    });
-}
-function loadMtl(modelPath) {
-    return __awaiter(this, void 0, void 0, function () {
-        var loader;
-        return __generator(this, function (_a) {
-            loader = new three_1.MTLLoader();
-            loader.setPath(modelPath);
-            return [2 /*return*/, new Promise(function (resolve) {
-                    loader.load("metadata.mtl", function (material) {
-                        material.preload();
-                        resolve(material);
-                    });
-                })];
-        });
-    });
-}
-function loadObj(modelPath, material) {
-    return __awaiter(this, void 0, void 0, function () {
-        var loader;
-        return __generator(this, function (_a) {
-            loader = new three_1.OBJLoader();
-            loader.setMaterials(material);
-            loader.setPath(modelPath);
-            return [2 /*return*/, new Promise(function (resolve) {
-                    loader.load("object.obj", function (object) {
-                        resolve(object);
-                    });
-                })];
         });
     });
 }
@@ -46611,17 +46550,24 @@ var KeyProcessor = /** @class */ (function () {
         this.keyMap = {};
         this.keyPressed = {};
         this.processing = false;
-    }
-    KeyProcessor.prototype.start = function () {
+        this.keyTable = {
+            left: 37,
+            up: 38,
+            right: 39,
+            down: 40
+        };
         document.addEventListener("keydown", this.onKeyDown.bind(this));
         document.addEventListener("keyup", this.onKeyDown.bind(this));
+    }
+    KeyProcessor.prototype.start = function () {
         this.processing = true;
     };
     KeyProcessor.prototype.stop = function () {
         this.processing = false;
     };
-    KeyProcessor.prototype.addKeyListener = function (keyCode, callback) {
-        this.keyMap[keyCode] = this.keyMap[keyCode] || [];
+    KeyProcessor.prototype.on = function (key, callback) {
+        var keyCode = this.keyTable[key];
+        this.keyMap[this.keyTable[key]] = this.keyMap[this.keyTable[key]] || [];
         this.keyMap[keyCode].push(callback);
     };
     KeyProcessor.prototype.tick = function () {
@@ -46640,6 +46586,162 @@ var KeyProcessor = /** @class */ (function () {
     };
     return KeyProcessor;
 }());
+var GameObject = /** @class */ (function () {
+    function GameObject() {
+    }
+    GameObject.prototype.setObject = function (objct) {
+        this.object = objct;
+    };
+    return GameObject;
+}());
+var Light = /** @class */ (function (_super) {
+    __extends(Light, _super);
+    function Light() {
+        var _this = _super.call(this) || this;
+        _this.object = new three_1.HemisphereLight();
+        return _this;
+    }
+    return Light;
+}(GameObject));
+var Model = /** @class */ (function (_super) {
+    __extends(Model, _super);
+    function Model() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    Model.prototype.loadModel = function (modelPath) {
+        return __awaiter(this, void 0, void 0, function () {
+            var material, object;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.loadMtl(modelPath)];
+                    case 1:
+                        material = _a.sent();
+                        return [4 /*yield*/, this.loadObj(modelPath, material)];
+                    case 2:
+                        object = _a.sent();
+                        return [2 /*return*/, object];
+                }
+            });
+        });
+    };
+    Model.prototype.loadMtl = function (modelPath) {
+        return __awaiter(this, void 0, void 0, function () {
+            var loader;
+            return __generator(this, function (_a) {
+                loader = new three_1.MTLLoader();
+                loader.setPath(modelPath);
+                return [2 /*return*/, new Promise(function (resolve) {
+                        loader.load("metadata.mtl", function (material) {
+                            material.preload();
+                            resolve(material);
+                        });
+                    })];
+            });
+        });
+    };
+    Model.prototype.loadObj = function (modelPath, material) {
+        return __awaiter(this, void 0, void 0, function () {
+            var loader;
+            return __generator(this, function (_a) {
+                loader = new three_1.OBJLoader();
+                loader.setMaterials(material);
+                loader.setPath(modelPath);
+                return [2 /*return*/, new Promise(function (resolve) {
+                        loader.load("object.obj", function (object) {
+                            resolve(object);
+                        });
+                    })];
+            });
+        });
+    };
+    return Model;
+}(GameObject));
+var Game = /** @class */ (function () {
+    function Game() {
+        var _this = this;
+        this.objects = [];
+        this.procs = [];
+        this.scene = new three_1.Scene();
+        this.camera = new three_1.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 5000);
+        this.camera.position.set(100, 100, 100);
+        this.camera.lookAt(new three_1.Vector3(0, 0, 0));
+        this.renderer = this.initRenderer();
+        this.addProc(function () {
+            _this.render();
+        });
+    }
+    Game.prototype.initRenderer = function () {
+        var renderer = new three_1.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        return renderer;
+    };
+    Game.prototype.addGameObject = function (obj) {
+        this.objects.push(obj);
+        this.scene.add(obj.object);
+    };
+    Game.prototype.addProc = function (proc) {
+        this.procs.push(proc);
+    };
+    Game.prototype.start = function () {
+        this.loop();
+    };
+    Game.prototype.render = function () {
+        this.renderer.render(this.scene, this.camera);
+    };
+    Game.prototype.loop = function () {
+        requestAnimationFrame(this.loop.bind(this));
+        this.procs.forEach(function (p) { return p(); });
+    };
+    return Game;
+}());
+var PoliceCar = /** @class */ (function (_super) {
+    __extends(PoliceCar, _super);
+    function PoliceCar() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    PoliceCar.prototype.init = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _a = this;
+                        return [4 /*yield*/, this.loadModel("./objects/police_car/")];
+                    case 1:
+                        _a.object = _b.sent();
+                        this.direction = new three_1.Vector4(1, 0, 0, 0);
+                        this.object.scale.set(7, 7, 7);
+                        this.object.position.set(0, 10, 0);
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    return PoliceCar;
+}(Model));
+var Casino = /** @class */ (function (_super) {
+    __extends(Casino, _super);
+    function Casino() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    Casino.prototype.init = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _a = this;
+                        return [4 /*yield*/, this.loadModel("./objects/casino/")];
+                    case 1:
+                        _a.object = _b.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    return Casino;
+}(Model));
 
 
 /***/ })

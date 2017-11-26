@@ -1,168 +1,37 @@
-import {
-  Scene,
-  Color,
-  Fog,
-  PerspectiveCamera,
-  WebGLRenderer,
-  Vector4,
-  DirectionalLight,
-  Quaternion,
-  Vector3,
-  MTLLoader,
-  MaterialCreator,
-  OBJLoader,
-  Group
-} from "three";
+import { Model } from "../objects/Model";
+import { PoliceCar } from "../objects/models/PoliceCar";
+import { Casino } from "../objects/models/Casino";
+import { Light } from "../objects/Light";
+import { Game } from "./Game";
 
 export class App {
   async start() {
-    const scene = new Scene();
-    scene.background = new Color().setHSL(0.6, 0, 1);
-    scene.fog = new Fog(scene.background, 1, 5000);
+    const policeCar = new PoliceCar();
+    const casino = new Casino();
+    await pararellModelLoader(policeCar, casino);
+    const light = new Light();
+    const game = new Game();
+    game.addGameObject(policeCar);
+    game.addGameObject(casino);
+    game.addGameObject(light);
 
-    const camera = new PerspectiveCamera(
-      30,
-      window.innerWidth / window.innerHeight,
-      1,
-      5000
-    );
-    const renderer = new WebGLRenderer();
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.renderReverseSided = false;
-
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    const policeCar = await loadModel("./objects/police_car/");
-    policeCar.castShadow = true;
-    policeCar.position.y = 7;
-    policeCar.rotation.y = Math.PI / 2;
-    policeCar.scale.set(7, 7, 7);
-    const policeForward = new Vector4(1, 0, 0, 0);
-
-    const casino = await loadModel("./objects/casino/");
-    casino.receiveShadow = true;
-
-    const dirLight = new DirectionalLight();
-    dirLight.position.set(20, 20, 20);
-    dirLight.target.position.set(
-      policeCar.position.x,
-      policeCar.position.y,
-      policeCar.position.z
-    );
-
-    scene.add(policeCar);
-    scene.add(casino);
-    scene.add(dirLight);
-    scene.add(dirLight.target);
-
-    camera.position.set(100, 100, 200);
-    camera.lookAt(policeCar.position);
-
-    const pressed: { [index: number]: boolean } = {};
-    function animate() {
-      requestAnimationFrame(animate);
-
-      let forward = 0;
-      if (pressed[37]) {
-        const q = new Quaternion();
-        const axis = new Vector3(0, 1, 0);
-        q.setFromAxisAngle(axis, 0.1);
-        policeCar.quaternion.multiply(q);
+    game.addProc(() => {
+      const rc = new Raycaster(policeCar.object.position, new Vector3(0, -1, 0));
+      const c = rc.intersectObject(casino.object, true);
+      console.log(c.length);
+      if (c.length === 0) {
+        policeCar.object.position.y += 0.1;
+      } else {
+        if (!c.some(o => o.distance === 0)) {
+          policeCar.object.position.y -= 0.1;
+        }
       }
-      if (pressed[38]) {
-        forward = 1;
-      }
-      if (pressed[39]) {
-        const q = new Quaternion();
-        const axis = new Vector3(0, 1, 0);
-        q.setFromAxisAngle(axis, -0.1);
-        policeCar.quaternion.multiply(q);
-      }
-      if (pressed[40]) {
-        forward = -1;
-      }
-      const f = policeForward.clone().applyMatrix4(policeCar.matrix);
-      const v = new Vector3(f.x, f.y, f.z).normalize();
-      policeCar.position.add(
-        new Vector3(v.x * forward, v.y * forward, v.z * forward)
-      );
-      dirLight.target.position.set(
-        policeCar.position.x,
-        policeCar.position.y,
-        policeCar.position.z
-      );
-
-      renderer.render(scene, camera);
-    }
-    document.addEventListener("keyup", e => {
-      pressed[e.keyCode] = false;
     });
 
-    document.addEventListener("keydown", e => {
-      pressed[e.keyCode] = true;
-    });
-
-    animate();
+    game.start();
   }
 }
 
-async function loadModel(modelPath: string) {
-  const material = await loadMtl(modelPath);
-  const object = await loadObj(modelPath, material);
-  return object;
-}
-
-async function loadMtl(modelPath: string) {
-  const loader = new MTLLoader();
-  loader.setPath(modelPath);
-  return new Promise<MaterialCreator>(resolve => {
-    loader.load("metadata.mtl", (material: MaterialCreator) => {
-      material.preload();
-      resolve(material);
-    });
-  });
-}
-
-async function loadObj(modelPath: string, material: MaterialCreator) {
-  const loader = new OBJLoader();
-  loader.setMaterials(material);
-  loader.setPath(modelPath);
-  return new Promise<Group>(resolve => {
-    loader.load("object.obj", object => {
-      resolve(object);
-    });
-  });
-}
-
-class KeyProcessor {
-  keyMap: { [keyCode: number]: Array<() => void> } = {};
-  keyPressed: { [keyCode: number]: boolean } = {};
-  processing: boolean = false;
-  start() {
-    document.addEventListener("keydown", this.onKeyDown.bind(this));
-    document.addEventListener("keyup", this.onKeyDown.bind(this));
-    this.processing = true;
-  }
-  stop() {
-    this.processing = false;
-  }
-  addKeyListener(keyCode: number, callback: () => void) {
-    this.keyMap[keyCode] = this.keyMap[keyCode] || [];
-    this.keyMap[keyCode].push(callback);
-  }
-  tick() {
-    if (!this.processing) {
-      return;
-    }
-    for (const k in this.keyPressed) {
-      k && this.keyMap[k] && this.keyMap[k].forEach(cb => cb());
-    }
-  }
-  private onKeyDown(e: KeyboardEvent) {
-    this.keyPressed[e.keyCode] = true;
-  }
-  private onKeyUp(e: KeyboardEvent) {
-    this.keyPressed[e.keyCode] = false;
-  }
+async function pararellModelLoader(...obj: Model[]): Promise<void> {
+  await Promise.all(obj.map(o => o.init()));
 }
